@@ -1,23 +1,26 @@
-var http = require('http');
-var fs = require('fs');
-var extract = require('./extract');
-var wss = require('./websockets-server');
-
-var handleError = function (err, res) {
-  res.writeHead(404);
-  res.end();
-};
-
-var server = http.createServer(function (req, res) {
-  var filePath = extract(req.url);
-  fs.readFile(filePath, function (err, data) {
-    if (err) {
-      handleError(err, res);
-      return;
-    } else {
-      res.end(data);
-    }
-  });
+var WebSocket = require('ws');
+var WebSocketServer = WebSocket.Server;
+var port = 3001;
+var ws = new WebSocketServer({
+  port: port
 });
 
-server.listen(3000);
+var messages = [];
+
+console.log('websockets server started');
+
+ws.on('connection', function (socket) {
+  console.log('client connection established');
+
+  messages.forEach(function (msg) {
+    socket.send(msg);
+  });
+
+  socket.on('message', function (data) {
+    console.log('message received: ' + data);
+    messages.push(data);
+    ws.clients.forEach(function (clientSocket) {
+      clientSocket.send(data);
+    });
+  });
+});
